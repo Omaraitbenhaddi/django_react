@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import axios from 'axios';
 import {
     TextField, Button, Container, Typography, Box, MenuItem, Select,
-    InputLabel, FormControl, Drawer, List, ListItem, ListItemText
+    InputLabel, FormControl, Drawer, List, ListItem, ListItemText, Paper, CircularProgress, Grid
 } from '@mui/material';
 
 const RunPlaybook = () => {
@@ -12,6 +12,9 @@ const RunPlaybook = () => {
     const [selectedDomain, setSelectedDomain] = useState("");
     const [playbooks, setPlaybooks] = useState([]);
     const [playbookName, setPlaybookName] = useState("");
+    const [loadingDomains, setLoadingDomains] = useState(true);
+    const [loadingPlaybooks, setLoadingPlaybooks] = useState(false);
+    const [loadingVariables, setLoadingVariables] = useState(false);
 
     useEffect(() => {
         const fetchDomains = async () => {
@@ -20,6 +23,8 @@ const RunPlaybook = () => {
                 setDomains(response.data);
             } catch (error) {
                 console.error('Error fetching domains:', error);
+            } finally {
+                setLoadingDomains(false);
             }
         };
 
@@ -29,11 +34,14 @@ const RunPlaybook = () => {
     useEffect(() => {
         const fetchPlaybooks = async () => {
             if (!selectedDomain) return;
+            setLoadingPlaybooks(true);
             try {
                 const response = await axios.get(`http://127.0.0.1:8000/api/get-playbooks/${selectedDomain}/`);
                 setPlaybooks(response.data);
             } catch (error) {
                 console.error('Error fetching playbooks:', error);
+            } finally {
+                setLoadingPlaybooks(false);
             }
         };
 
@@ -79,12 +87,15 @@ const RunPlaybook = () => {
                 formik.setFieldValue('variables', [{ name: '', value: '' }]);
                 return;
             }
+            setLoadingVariables(true);
             try {
                 const response = await axios.get(`http://localhost:8000/api/get_variables/${selectedDomain}/${playbookName.slice(0, -4)}/`);
                 const variables = Object.entries(response.data).map(([name, value]) => ({ name, value }));
                 formik.setFieldValue('variables', variables);
             } catch (error) {
                 console.error('Error fetching variables:', error);
+            } finally {
+                setLoadingVariables(false);
             }
         };
 
@@ -107,11 +118,17 @@ const RunPlaybook = () => {
         <Container maxWidth="lg">
             <Drawer variant="permanent" anchor="left">
                 <List>
-                    {domains.map((domain) => (
-                        <ListItem button key={domain} onClick={() => handleDomainSelection(domain)}>
-                            <ListItemText primary={domain} />
+                    {loadingDomains ? (
+                        <ListItem>
+                            <CircularProgress />
                         </ListItem>
-                    ))}
+                    ) : (
+                        domains.map((domain) => (
+                            <ListItem button key={domain} onClick={() => handleDomainSelection(domain)}>
+                                <ListItemText primary={domain} />
+                            </ListItem>
+                        ))
+                    )}
                 </List>
             </Drawer>
             <Box ml={30} mt={5}>
@@ -119,73 +136,81 @@ const RunPlaybook = () => {
                     Run Ansible Playbook
                 </Typography>
                 <FormikProvider value={formik}>
-                    <form onSubmit={formik.handleSubmit}>
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel id="playbook-label">Playbook</InputLabel>
-                            <Select
-                                labelId="playbook-label"
-                                id="playbookPath"
-                                name="playbookPath"
-                                value={formik.values.playbookPath}
-                                onChange={(e) => {
-                                    formik.handleChange(e);
-                                    handlePlaybookSelection(e.target.value);
-                                }}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.playbookPath && Boolean(formik.errors.playbookPath)}
-                            >
-                                {playbooks.map((playbook) => (
-                                    <MenuItem key={playbook} value={playbook}>
-                                        {playbook}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FieldArray name="variables">
-                            {({ push, remove }) => (
-                                <div>
-                                    {formik.values.variables.map((variable, index) => (
-                                        <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                                            <TextField
-                                                fullWidth
-                                                id={`variables[${index}].name`}
-                                                name={`variables[${index}].name`}
-                                                label="Variable Name"
-                                                value={variable.name}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                error={formik.touched.variables?.[index]?.name && Boolean(formik.errors.variables?.[index]?.name)}
-                                                helperText={formik.touched.variables?.[index]?.name && formik.errors.variables?.[index]?.name}
-                                                margin="normal"
-                                                variant="outlined"
-                                                style={{ marginRight: '8px' }}
-                                                disabled
-                                            />
-                                            <TextField
-                                                fullWidth
-                                                id={`variables[${index}].value`}
-                                                name={`variables[${index}].value`}
-                                                label="Variable Value"
-                                                value={variable.value}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                error={formik.touched.variables?.[index]?.value && Boolean(formik.errors.variables?.[index]?.value)}
-                                                helperText={formik.touched.variables?.[index]?.value && formik.errors.variables?.[index]?.value}
-                                                margin="normal"
-                                                variant="outlined"
-                                                style={{ marginRight: '8px' }}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </FieldArray>
-                        <Box mt={2}>
-                            <Button color="primary" variant="contained" fullWidth type="submit" disabled={formik.isSubmitting}>
-                                Run Playbook
-                            </Button>
-                        </Box>
-                    </form>
+                    <Paper elevation={3} style={{ padding: '16px' }}>
+                        <form onSubmit={formik.handleSubmit}>
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel id="playbook-label">Playbook</InputLabel>
+                                <Select
+                                    labelId="playbook-label"
+                                    id="playbookPath"
+                                    name="playbookPath"
+                                    value={formik.values.playbookPath}
+                                    onChange={(e) => {
+                                        formik.handleChange(e);
+                                        handlePlaybookSelection(e.target.value);
+                                    }}
+                                    onBlur={formik.handleBlur}
+                                    error={formik.touched.playbookPath && Boolean(formik.errors.playbookPath)}
+                                >
+                                    {loadingPlaybooks ? (
+                                        <MenuItem disabled><CircularProgress size={24} /></MenuItem>
+                                    ) : (
+                                        playbooks.map((playbook) => (
+                                            <MenuItem key={playbook} value={playbook}>
+                                                {playbook}
+                                            </MenuItem>
+                                        ))
+                                    )}
+                                </Select>
+                            </FormControl>
+                            <FieldArray name="variables">
+                                {({ push, remove }) => (
+                                    <div>
+                                        {formik.values.variables.map((variable, index) => (
+                                            <Grid container spacing={2} key={index} alignItems="center">
+                                                <Grid item xs={5}>
+                                                    <TextField
+                                                        fullWidth
+                                                        id={`variables[${index}].name`}
+                                                        name={`variables[${index}].name`}
+                                                        label="Variable Name"
+                                                        value={variable.name}
+                                                        onChange={formik.handleChange}
+                                                        onBlur={formik.handleBlur}
+                                                        error={formik.touched.variables?.[index]?.name && Boolean(formik.errors.variables?.[index]?.name)}
+                                                        helperText={formik.touched.variables?.[index]?.name && formik.errors.variables?.[index]?.name}
+                                                        margin="normal"
+                                                        variant="outlined"
+                                                        disabled
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={5}>
+                                                    <TextField
+                                                        fullWidth
+                                                        id={`variables[${index}].value`}
+                                                        name={`variables[${index}].value`}
+                                                        label="Variable Value"
+                                                        value={variable.value}
+                                                        onChange={formik.handleChange}
+                                                        onBlur={formik.handleBlur}
+                                                        error={formik.touched.variables?.[index]?.value && Boolean(formik.errors.variables?.[index]?.value)}
+                                                        helperText={formik.touched.variables?.[index]?.value && formik.errors.variables?.[index]?.value}
+                                                        margin="normal"
+                                                        variant="outlined"
+                                                    />
+                                                </Grid>
+                                            </Grid>
+                                        ))}
+                                    </div>
+                                )}
+                            </FieldArray>
+                            <Box mt={2}>
+                                <Button color="primary" variant="contained" fullWidth type="submit" disabled={formik.isSubmitting}>
+                                    {formik.isSubmitting ? <CircularProgress size={24} /> : "Run Playbook"}
+                                </Button>
+                            </Box>
+                        </form>
+                    </Paper>
                 </FormikProvider>
                 {formik.status && (
                     <Box mt={2}>
