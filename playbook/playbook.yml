@@ -1,7 +1,0 @@
-# test_playbook.yml
----
-- name: Test Playbook
-  hosts: localhost
-  tasks:
-    - name: Ping localhost
-      ping:

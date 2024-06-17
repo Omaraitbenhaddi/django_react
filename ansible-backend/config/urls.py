@@ -18,10 +18,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from playbook.views import RunPlaybook
+from playbook.views import get_variables, get_playbooks
+
+
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path('api/run-playbook/', RunPlaybook.as_view(), name='run-playbook'),
-
+    path('api/get-playbooks/', get_playbooks, name='get-playbooks'),
+    path('api/get_variables/<str:playbook_name>/', get_variables, name='get_variables'),
 ]
+
