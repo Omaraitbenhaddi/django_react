@@ -6,4 +6,4 @@
   tasks:
     - name: Display message
       debug:
-        msg: "Hello world."
+        msg: "{{ test_var2 }}"

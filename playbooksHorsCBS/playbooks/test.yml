@@ -1,0 +1,9 @@
+---
+- name: Test playbook
+  hosts: localhost
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Display message
+      debug:
+        msg: "{{ test_var2 }}"

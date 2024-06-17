@@ -2,16 +2,35 @@ import React, { useEffect, useState } from 'react';
 import { useFormik, FieldArray, FormikProvider } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
-import { TextField, Button, Container, Typography, Box, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import {
+    TextField, Button, Container, Typography, Box, MenuItem, Select,
+    InputLabel, FormControl, Drawer, List, ListItem, ListItemText
+} from '@mui/material';
 
 const RunPlaybook = () => {
+    const [domains, setDomains] = useState([]);
+    const [selectedDomain, setSelectedDomain] = useState("");
     const [playbooks, setPlaybooks] = useState([]);
     const [playbookName, setPlaybookName] = useState("");
 
     useEffect(() => {
-        const fetchPlaybooks = async () => {
+        const fetchDomains = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/get-playbooks/');
+                const response = await axios.get('http://127.0.0.1:8000/api/get_domaine/');
+                setDomains(response.data);
+            } catch (error) {
+                console.error('Error fetching domains:', error);
+            }
+        };
+
+        fetchDomains();
+    }, []);
+
+    useEffect(() => {
+        const fetchPlaybooks = async () => {
+            if (!selectedDomain) return;
+            try {
+                const response = await axios.get(`http://127.0.0.1:8000/api/get-playbooks/${selectedDomain}/`);
                 setPlaybooks(response.data);
             } catch (error) {
                 console.error('Error fetching playbooks:', error);
@@ -19,7 +38,7 @@ const RunPlaybook = () => {
         };
 
         fetchPlaybooks();
-    }, []);
+    }, [selectedDomain]);
 
     const formik = useFormik({
         initialValues: {
@@ -56,8 +75,12 @@ const RunPlaybook = () => {
 
     useEffect(() => {
         const fetchVariables = async () => {
+            if (!selectedDomain || !playbookName) {
+                formik.setFieldValue('variables', [{ name: '', value: '' }]);
+                return;
+            }
             try {
-                const response = await axios.get('http://localhost:8000/api/get_variables/'+playbookName.slice(0,-4 )+'/');
+                const response = await axios.get(`http://localhost:8000/api/get_variables/${selectedDomain}/${playbookName.slice(0, -4)}/`);
                 const variables = Object.entries(response.data).map(([name, value]) => ({ name, value }));
                 formik.setFieldValue('variables', variables);
             } catch (error) {
@@ -65,14 +88,33 @@ const RunPlaybook = () => {
             }
         };
 
-        if (playbookName) {
-            fetchVariables();
-        }
-    }, [playbookName]);
+        fetchVariables();
+    }, [playbookName, selectedDomain]);
+
+    const handleDomainSelection = (domain) => {
+        setSelectedDomain(domain);
+        setPlaybookName("");
+        formik.setFieldValue('playbookPath', '');
+        formik.setFieldValue('variables', [{ name: '', value: '' }]);
+    };
+
+    const handlePlaybookSelection = (playbook) => {
+        formik.setFieldValue('playbookPath', playbook);
+        setPlaybookName(playbook);
+    };
 
     return (
-        <Container maxWidth="sm">
-            <Box mt={5}>
+        <Container maxWidth="lg">
+            <Drawer variant="permanent" anchor="left">
+                <List>
+                    {domains.map((domain) => (
+                        <ListItem button key={domain} onClick={() => handleDomainSelection(domain)}>
+                            <ListItemText primary={domain} />
+                        </ListItem>
+                    ))}
+                </List>
+            </Drawer>
+            <Box ml={30} mt={5}>
                 <Typography variant="h4" align="center" gutterBottom>
                     Run Ansible Playbook
                 </Typography>
@@ -87,7 +129,7 @@ const RunPlaybook = () => {
                                 value={formik.values.playbookPath}
                                 onChange={(e) => {
                                     formik.handleChange(e);
-                                    setPlaybookName(e.target.value);
+                                    handlePlaybookSelection(e.target.value);
                                 }}
                                 onBlur={formik.handleBlur}
                                 error={formik.touched.playbookPath && Boolean(formik.errors.playbookPath)}
@@ -135,7 +177,6 @@ const RunPlaybook = () => {
                                             />
                                         </div>
                                     ))}
-
                                 </div>
                             )}
                         </FieldArray>
