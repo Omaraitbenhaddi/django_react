@@ -64,9 +64,9 @@ class RunPlaybook(APIView):
         serializer = PlaybookSerializer(data=request.data)
         if serializer.is_valid():
             playbook_path = serializer.validated_data['playbook_path']
-            print(playbook_path)
+            selectedDomain = serializer.validated_data['selectedDomain']
             playbook_vars = request.data.get('variables', {})
-            playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'playbooksCBS', 'playbooks', playbook_path))
+            playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', f'{selectedDomain}', 'playbooks', playbook_path))
             
             # For Windows WSL, the path needs to be converted to WSL format
             if platform.system() == 'Windows':
