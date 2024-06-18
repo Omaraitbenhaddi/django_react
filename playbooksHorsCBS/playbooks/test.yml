@@ -2,7 +2,7 @@
 - name: Test playbook
   hosts: localhost
   vars_files:
-    - vars.yml
+    - ../var/test_vars.yml
   tasks:
     - name: Display message
       debug:

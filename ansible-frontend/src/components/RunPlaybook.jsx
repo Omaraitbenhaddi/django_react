@@ -1,11 +1,12 @@
+// src/components/RunPlaybook.jsx
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, IconButton, Backdrop } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Container, Typography, Box, Backdrop } from '@mui/material';
 import DomainDrawer from './DomainDrawer';
 import PlaybookForm from './PlaybookForm';
 import { fetchDomains, fetchPlaybooks, fetchVariables, runPlaybook } from './useApi';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom'; // Ajouter l'importation
 
 const RunPlaybook = () => {
     const [domains, setDomains] = useState([]);
@@ -17,6 +18,7 @@ const RunPlaybook = () => {
     const [loadingVariables, setLoadingVariables] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
+    const navigate = useNavigate(); // Utiliser le hook useNavigate
 
     useEffect(() => {
         const loadDomains = async () => {
@@ -74,9 +76,11 @@ const RunPlaybook = () => {
                 const response = await runPlaybook(values.playbookPath, values.variables, selectedDomain);
                 setStatus({ success: response.output });
                 setExecutionResult({ success: response.output });
+                navigate('/logs', { state: { logs: response.output } }); // Rediriger vers la page des logs avec les logs
             } catch (error) {
                 setStatus({ error: error.response ? error.response.data : { message: error.message } });
                 setExecutionResult({ error: error.response ? error.response.data : { message: error.message } });
+                navigate('/logs', { state: { logs: error.message } }); // Rediriger vers la page des logs avec les logs
             } finally {
                 setSubmitting(false);
             }
