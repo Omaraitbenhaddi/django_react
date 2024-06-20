@@ -1,50 +1,47 @@
-// src/components/RunPlaybook.jsx
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, Backdrop } from '@mui/material';
+import { Container, Typography, Box, CircularProgress, Grid, Backdrop } from '@mui/material';
 import DomainDrawer from './DomainDrawer';
+import PlaybookCard from './PlaybookCard';
 import PlaybookForm from './PlaybookForm';
 import { fetchDomains, fetchPlaybooks, fetchVariables, runPlaybook } from './useApi';
-import { useFormik } from 'formik';
+import { useFormik, FormikProvider } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate } from 'react-router-dom'; // Ajouter l'importation
+import { useNavigate } from 'react-router-dom';
 
 const RunPlaybook = () => {
     const [domains, setDomains] = useState([]);
+    const [domainPlaybooks, setDomainPlaybooks] = useState({});
     const [selectedDomain, setSelectedDomain] = useState("");
-    const [playbooks, setPlaybooks] = useState([]);
     const [playbookName, setPlaybookName] = useState("");
     const [loadingDomains, setLoadingDomains] = useState(true);
     const [loadingPlaybooks, setLoadingPlaybooks] = useState(false);
     const [loadingVariables, setLoadingVariables] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
-    const navigate = useNavigate(); // Utiliser le hook useNavigate
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const loadDomains = async () => {
+        const loadDomainsAndPlaybooks = async () => {
             setLoadingDomains(true);
             const domainsData = await fetchDomains();
             setDomains(domainsData);
             setLoadingDomains(false);
+            setLoadingPlaybooks(true);
+            const playbooksByDomain = {};
+            for (const domain of domainsData) {
+                const playbooksData = await fetchPlaybooks(domain);
+                playbooksByDomain[domain] = playbooksData;
+            }
+            setDomainPlaybooks(playbooksByDomain);
+            setLoadingPlaybooks(false);
         };
-        loadDomains();
+        loadDomainsAndPlaybooks();
     }, []);
 
     useEffect(() => {
-        const loadPlaybooks = async () => {
-            if (!selectedDomain) return;
-            setLoadingPlaybooks(true);
-            const playbooksData = await fetchPlaybooks(selectedDomain);
-            setPlaybooks(playbooksData);
-            setLoadingPlaybooks(false);
-        };
-        loadPlaybooks();
-    }, [selectedDomain]);
-
-    useEffect(() => {
         const loadVariables = async () => {
-            if (!selectedDomain || !playbookName) {
-                formik.setFieldValue('variables', [{ name: '', value: '' }], false);
+            if (!playbookName || !selectedDomain) {
+                formik.setFieldValue('variables', [], false);
                 return;
             }
             setLoadingVariables(true);
@@ -59,7 +56,7 @@ const RunPlaybook = () => {
     const formik = useFormik({
         initialValues: {
             playbookPath: '',
-            variables: [{ name: '', value: '' }],
+            variables: [],
         },
         validationSchema: Yup.object({
             playbookPath: Yup.string().required('Playbook path is required'),
@@ -76,33 +73,37 @@ const RunPlaybook = () => {
                 const response = await runPlaybook(values.playbookPath, values.variables, selectedDomain);
                 setStatus({ success: response.output });
                 setExecutionResult({ success: response.output });
-                navigate('/logs', { state: { logs: response.output } }); // Rediriger vers la page des logs avec les logs
+                setPlaybookName("");
+                navigate('/logs', { state: { logs: response.output } });
             } catch (error) {
                 setStatus({ error: error.response ? error.response.data : { message: error.message } });
                 setExecutionResult({ error: error.response ? error.response.data : { message: error.message } });
-                navigate('/logs', { state: { logs: error.message } }); // Rediriger vers la page des logs avec les logs
+                navigate('/logs', { state: { logs: error.message } });
             } finally {
                 setSubmitting(false);
             }
         },
     });
 
+    const handlePlaybookSelection = (domain, playbook) => {
+        formik.setFieldValue('playbookPath', playbook);
+        setSelectedDomain(domain);
+        setPlaybookName(playbook);
+    };
+
     const handleDomainSelection = (domain) => {
         setSelectedDomain(domain);
         setPlaybookName("");
         formik.setFieldValue('playbookPath', '');
-        formik.setFieldValue('variables', [{ name: '', value: '' }], false);
+        formik.setFieldValue('variables', []);
         setDrawerOpen(false);
-    };
-
-    const handlePlaybookSelection = (playbook) => {
-        formik.setFieldValue('playbookPath', playbook);
-        setPlaybookName(playbook);
     };
 
     return (
         <Container maxWidth="lg">
-            <Backdrop open={drawerOpen} onClick={() => setDrawerOpen(false)} />
+            <Backdrop open={drawerOpen} onClick={() => setDrawerOpen(false)}>
+                <CircularProgress color="inherit" />
+            </Backdrop>
             <DomainDrawer
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
@@ -110,17 +111,39 @@ const RunPlaybook = () => {
                 loadingDomains={loadingDomains}
                 onSelectDomain={handleDomainSelection}
             />
-            <Box ml={drawerOpen ? '270px' : '0'} mt={5} transition="margin-left 0.3s">
+            <Box mt={5}>
                 <Typography variant="h4" align="center" gutterBottom>
                     Run Ansible Playbook
                 </Typography>
-                <PlaybookForm
-                    playbooks={playbooks}
-                    loadingPlaybooks={loadingPlaybooks}
-                    onSubmit={formik.handleSubmit}
-                    onPlaybookChange={handlePlaybookSelection}
-                    formik={formik}
-                />
+                {loadingVariables ? (
+                    <Box display="flex" justifyContent="center">
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <>
+                        {playbookName && (
+                            <FormikProvider value={formik}>
+                                <PlaybookForm onSubmit={formik.handleSubmit} />
+                            </FormikProvider>
+                        )}
+
+                        {
+                        !playbookName && Object.entries(domainPlaybooks).map(([domain, playbooks]) => (
+                            <Box key={domain} mt={3} pb={2} border={1} borderRadius={4} borderColor="grey.300" px={2}>
+                                <Typography variant="h5" gutterBottom>
+                                    {domain}
+                                </Typography>
+                                <Grid container spacing={2}>
+                                    {playbooks.map((playbook) => (
+                                        <Grid item xs={12} sm={6} md={4} key={playbook}>
+                                            <PlaybookCard playbook={playbook} onClick={() => handlePlaybookSelection(domain, playbook)} />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </Box>
+                        ))}
+                    </>
+                )}
                 {executionResult && (
                     <Box mt={2}>
                         {executionResult.success && (

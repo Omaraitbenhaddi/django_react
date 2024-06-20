@@ -1,9 +1,9 @@
 import React from 'react';
-import { FieldArray, useFormikContext } from 'formik';
-import { Grid, TextField } from '@mui/material';
+import { Box, Grid, TextField } from '@mui/material';
+import { FieldArray } from 'formik';
 
-const VariableFields = () => {
-    const formik = useFormikContext();
+
+const VariableFields = ({ formik }) => {
     return (
         <FieldArray name="variables">
             {({ push, remove }) => (

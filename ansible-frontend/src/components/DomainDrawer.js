@@ -34,7 +34,7 @@ const DomainDrawer = ({ domains, onSelectDomain }) => {
               button
               key={domain}
               onClick={() => handleDomainClick(domain)}
-              selected={selectedDomain === domain} // Ajouter la classe sélectionnée si le domaine est sélectionné
+              selected={selectedDomain === domain}
             >
               <ListItemText primary={domain} />
             </ListItem>
