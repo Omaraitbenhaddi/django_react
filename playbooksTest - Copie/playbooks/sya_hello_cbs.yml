@@ -1,0 +1,9 @@
+---
+- name: Test playbook
+  hosts: localhost
+  vars_files:
+    - ../var/sya_hello_cbs_vars.yml
+  tasks:
+    - name: Display message
+      debug:
+        msg: "{{ test_var2 }}"

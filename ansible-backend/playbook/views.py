@@ -31,7 +31,6 @@ def get_domaine(request):
     try:
         if os.path.isdir(playbooks_dir):
             playbooks = [f for f in os.listdir(playbooks_dir) if f.startswith('playbooks')]
-            print(playbooks)
             return JsonResponse(playbooks, safe=False)
         else:
             return JsonResponse({'error': 'Le répertoire des playbooks n\'existe pas'}, status=404)
