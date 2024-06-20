@@ -18,6 +18,7 @@ export const fetchVariables = async (selectedDomain, playbookName) => {
 export const runPlaybook = async (playbookPath, variables, selectedDomain) => {
     const response = await axios.post('http://localhost:8000/api/run-playbook/', {
         playbook_path: playbookPath,
+        vaultPass: "",
         selectedDomain: selectedDomain,
         variables: variables.reduce((acc, variable) => {
             acc[variable.name] = variable.value;
