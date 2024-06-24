@@ -2,6 +2,7 @@
 - name: Test playbook
   hosts: localhost
 
+
   tasks:
     - name: Display message
       debug:
@@ -17,4 +18,4 @@
 
     - name: Display message
       debug:
-        msg: "{{ var3 }}"
+        msg: "{{ password_var }}"

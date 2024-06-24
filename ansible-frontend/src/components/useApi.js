@@ -1,9 +1,19 @@
 import axios from 'axios';
 
+
+
 export const fetchDomains = async () => {
     const response = await axios.get('http://127.0.0.1:8000/api/get_domaine/');
     return response.data;
 };
+
+
+
+export const fetchAllSecrets = async () => {
+    const response = await axios.get('http://127.0.0.1:8000/api/getAllSecrets/');
+    return response.data;
+};
+
 
 export const fetchPlaybooks = async (selectedDomain) => {
     const response = await axios.get(`http://127.0.0.1:8000/api/get-playbooks/${selectedDomain}/`);
@@ -15,15 +25,30 @@ export const fetchVariables = async (selectedDomain, playbookName) => {
     return response.data;
 };
 
-export const runPlaybook = async (playbookPath, variables, selectedDomain) => {
-    const response = await axios.post('http://localhost:8000/api/run-playbook/', {
+
+
+export const runPlaybook = async (playbookPath, variables, selectedDomain, vaultPass) => {
+    const payload = {
         playbook_path: playbookPath,
-        vaultPass: "",
+        vaultPass: vaultPass || "", 
         selectedDomain: selectedDomain,
         variables: variables.reduce((acc, variable) => {
             acc[variable.name] = variable.value;
             return acc;
         }, {}),
-    });
+    };
+
+    const response = await axios.post('http://localhost:8000/api/run-playbook/', payload);
     return response.data;
 };
+
+export const AddSecrets = async (nom,  password) => {
+    const response = await axios.post('http://localhost:8000/add-password/', {
+        nom: nom,
+        password: password,
+    })
+    return response.data
+};
+
+
+

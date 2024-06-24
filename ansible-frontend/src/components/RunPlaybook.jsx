@@ -57,6 +57,7 @@ const RunPlaybook = () => {
         initialValues: {
             playbookPath: '',
             variables: [],
+            vaultName: '', 
         },
         validationSchema: Yup.object({
             playbookPath: Yup.string().required('Playbook path is required'),
@@ -66,11 +67,12 @@ const RunPlaybook = () => {
                     value: Yup.string().required('Variable value is required'),
                 })
             ),
+            vaultName: Yup.string(), // Ajout de cette ligne
         }),
         onSubmit: async (values, { setSubmitting, setStatus }) => {
             setSubmitting(true);
             try {
-                const response = await runPlaybook(values.playbookPath, values.variables, selectedDomain);
+                const response = await runPlaybook(values.playbookPath, values.variables ,selectedDomain, values.vaultName);
                 setStatus({ success: response.output });
                 setExecutionResult({ success: response.output });
                 setPlaybookName("");
@@ -121,28 +123,27 @@ const RunPlaybook = () => {
                     </Box>
                 ) : (
                     <>
-                        {playbookName && (
-                            <FormikProvider value={formik}>
-                                <PlaybookForm onSubmit={formik.handleSubmit} />
-                            </FormikProvider>
-                        )}
-
-                        {
-                        !playbookName && Object.entries(domainPlaybooks).map(([domain, playbooks]) => (
-                            <Box key={domain} mt={3} pb={2} border={1} borderRadius={4} borderColor="grey.300" px={2}>
-                                <Typography variant="h5" gutterBottom>
-                                    {domain}
-                                </Typography>
-                                <Grid container spacing={2}>
-                                    {playbooks.map((playbook) => (
-                                        <Grid item xs={12} sm={6} md={4} key={playbook}>
-                                            <PlaybookCard playbook={playbook} onClick={() => handlePlaybookSelection(domain, playbook)} />
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            </Box>
-                        ))}
-                    </>
+                    {playbookName && (
+                        <FormikProvider  value={formik}>
+                            <PlaybookForm onSubmit={formik.handleSubmit} />
+                        </FormikProvider>
+                    )}
+            
+                    {!playbookName && Object.entries(domainPlaybooks).map(([domain, playbooks]) => (
+                        <Box key={domain} mt={4} pb={3}>
+                            <Typography variant="h5" gutterBottom sx={{ color: '#e60000', borderBottom: '3px solid #e60000', paddingBottom: '10px', fontWeight: 'bold' }}>
+                                {domain}
+                            </Typography>
+                            <Grid container spacing={4}>
+                                {playbooks.map((playbook) => (
+                                    <Grid item xs={12} sm={6} md={4} key={playbook}>
+                                        <PlaybookCard playbook={playbook} onClick={() => handlePlaybookSelection(domain, playbook)} />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Box>
+                    ))}
+                </>
                 )}
                 {executionResult && (
                     <Box mt={2}>

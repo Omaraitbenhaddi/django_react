@@ -54,6 +54,28 @@ def getSecrets(request, nom):
         return Response({'error': 'Password not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+
+
+
+
+
+
+@api_view(['GET'])
+def getAllSecrets(request):
+    try:
+        passwords = Password.objects.all().values_list('nom', flat=True)
+        return Response({'passwords': list(passwords)}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+
+
+
 
 
 
@@ -114,10 +136,18 @@ import os
 import platform
 import subprocess
 import tempfile
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.conf import settings
+
+
+
+
+
+
+
+
+
+
+
+
 
 class RunPlaybook(APIView):
     def post(self, request, *args, **kwargs):
@@ -134,6 +164,20 @@ class RunPlaybook(APIView):
                 # Convert the Windows path to WSL path
                 playbook_dir = playbook_dir.replace('\\', '/')
                 playbook_dir = playbook_dir.replace('C:', '/mnt/c')
+                        # Check for any variable containing 'password' and replace with the decrypted value
+            print(vaultPass)
+            for key in playbook_vars:
+                if 'password' in key.lower():
+                    try:
+                        
+                        password_record = Password.objects.get(nom=vaultPass)
+                        encrypted_password = password_record.password.encode()
+                        decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
+                        playbook_vars[key] = decrypted_password
+                    except Password.DoesNotExist:
+                        return Response({'error': f'Password for {key} not found in database'}, status=status.HTTP_404_NOT_FOUND)
+                    except Exception as e:
+                        return Response({'error': f"Failed to run playbook: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             vars_string = " ".join([f"{key}='{val}'" for key, val in playbook_vars.items()])
 
@@ -153,24 +197,11 @@ class RunPlaybook(APIView):
                         encrypted_password = password.password.encode()
                         decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
                     except Password.DoesNotExist:
-                        # Try to get the secret from the key vault
-                        decrypted_password = get_secret_from_keyvault(vaultPass)
                         if not decrypted_password:
                             return Response({'error': 'Vault password not found in database or key vault'}, status=status.HTTP_404_NOT_FOUND)
 
-                    # Write the decrypted password to a temporary file
-                    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                        temp_file.write(decrypted_password.encode())
-                        temp_file_name = temp_file.name
-
-                    command.extend(['--vault-password-file', temp_file_name])
-
                 print(f"Running command: {' '.join(command)}")
                 result = subprocess.run(command, capture_output=True, text=True)
-
-                # Clean up the temporary file
-                if vaultPass:
-                    os.remove(temp_file_name)
 
                 if result.returncode == 0:
                     return Response({'output': result.stdout}, status=status.HTTP_200_OK)
