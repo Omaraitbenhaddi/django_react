@@ -135,19 +135,9 @@ def get_variables(request, domaine, playbook_name):
 import os
 import platform
 import subprocess
-import tempfile
 
 
-
-
-
-
-
-
-
-
-
-
+from .models import PlaybookLog
 
 class RunPlaybook(APIView):
     def post(self, request, *args, **kwargs):
@@ -159,17 +149,13 @@ class RunPlaybook(APIView):
             playbook_vars = request.data.get('variables', {})
             playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', f'{selectedDomain}', 'playbooks', playbook_path))
 
-            # For Windows WSL, the path needs to be converted to WSL format
             if platform.system() == 'Windows':
-                # Convert the Windows path to WSL path
                 playbook_dir = playbook_dir.replace('\\', '/')
                 playbook_dir = playbook_dir.replace('C:', '/mnt/c')
-                        # Check for any variable containing 'password' and replace with the decrypted value
-            print(vaultPass)
+            
             for key in playbook_vars:
                 if 'password' in key.lower():
                     try:
-                        
                         password_record = Password.objects.get(nom=vaultPass)
                         encrypted_password = password_record.password.encode()
                         decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
@@ -190,18 +176,21 @@ class RunPlaybook(APIView):
                 if vars_string:
                     command.extend(['--extra-vars', vars_string])
 
-                # Check if the playbook should be run with a vault password
                 if vaultPass:
                     try:
                         password = Password.objects.get(nom=vaultPass)
                         encrypted_password = password.password.encode()
                         decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
                     except Password.DoesNotExist:
-                        if not decrypted_password:
-                            return Response({'error': 'Vault password not found in database or key vault'}, status=status.HTTP_404_NOT_FOUND)
+                        return Response({'error': 'Vault password not found in database or key vault'}, status=status.HTTP_404_NOT_FOUND)
 
-                print(f"Running command: {' '.join(command)}")
                 result = subprocess.run(command, capture_output=True, text=True)
+
+                # Enregistrer les logs dans la base de données
+                PlaybookLog.objects.create(
+                    playbook_name=playbook_path,
+                    output=result.stdout if result.returncode == 0 else result.stderr
+                )
 
                 if result.returncode == 0:
                     return Response({'output': result.stdout}, status=status.HTTP_200_OK)
@@ -209,5 +198,25 @@ class RunPlaybook(APIView):
                     return Response({'error': result.stderr}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 return Response({'error': f"Failed to run playbook: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+from .models import PlaybookLog
+from .serializers import PlaybookLogSerializer , PlaybookLogNameSerializer
+
+class PlaybookLogListView(APIView):
+    def get(self, request):
+        logs = PlaybookLog.objects.all()
+        serializer = PlaybookLogNameSerializer(logs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class PlaybookLogDetailView(APIView):
+    def get(self, request, pk):
+        try:
+            log = PlaybookLog.objects.get(pk=pk)
+            serializer = PlaybookLogSerializer(log)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except PlaybookLog.DoesNotExist:
+            return Response({'error': 'Log not found'}, status=status.HTTP_404_NOT_FOUND)

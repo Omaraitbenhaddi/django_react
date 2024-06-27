@@ -18,7 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from playbook.views import RunPlaybook
-from playbook.views import get_variables, get_playbooks, get_domaine, AddPasswordView, getSecrets, getAllSecrets
+from playbook.views import get_variables, get_playbooks, get_domaine,PlaybookLogListView, PlaybookLogDetailView , AddPasswordView, getSecrets, getAllSecrets
 
 
 
@@ -32,6 +32,8 @@ urlpatterns = [
     path('api/get_domaine/', get_domaine, name='get_domaine'),
     path('api/getAllSecrets/', getAllSecrets, name='getAllSecrets'),
     path('add-password/', AddPasswordView.as_view(), name='add-password'),
+    path('logs/', PlaybookLogListView.as_view(), name='playbook-log-list'),
+    path('logs/<int:pk>/', PlaybookLogDetailView.as_view(), name='playbook-log-detail'),
 
 
 ]

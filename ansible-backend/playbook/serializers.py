@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Password
+from .models import PlaybookLog
 
 
 class PlaybookSerializer(serializers.Serializer):
@@ -15,3 +16,16 @@ class PasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = Password
         fields = ['nom', 'password']
+
+
+
+class PlaybookLogNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlaybookLog
+        fields = ['playbook_name', 'created_at', 'id']
+
+
+class PlaybookLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlaybookLog
+        fields = '__all__'

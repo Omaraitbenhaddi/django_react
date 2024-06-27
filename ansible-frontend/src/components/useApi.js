@@ -2,13 +2,34 @@ import axios from 'axios';
 
 
 
+
 export const fetchDomains = async () => {
     const response = await axios.get('http://127.0.0.1:8000/api/get_domaine/');
     return response.data;
 };
+  
+export const fetchLogs = async (setLogs, setLoadingLogs) => {
+    try {
+      const response = await axios.get('http://localhost:8000/logs/');
+      setLogs(response.data);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
 
 
-
+  export const fetchLog = async (id) => {
+    try {
+      const response = await axios.get(`http://localhost:8000/logs/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching log with id ${id}:`, error);
+      return null;
+    }
+  };
+  
 export const fetchAllSecrets = async () => {
     const response = await axios.get('http://127.0.0.1:8000/api/getAllSecrets/');
     return response.data;
