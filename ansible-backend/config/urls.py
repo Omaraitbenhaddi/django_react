@@ -18,20 +18,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from playbook.views import RunPlaybook
-from playbook.views import get_variables, get_playbooks, get_domaine,PlaybookLogListView, PlaybookLogDetailView , AddPasswordView, getSecrets, getAllSecrets
+from playbook.views import get_variables, get_playbooks, get_domaine,PlaybookLogListView, PlaybookLogDetailView 
 
 
 
 
 urlpatterns = [
-    path('get-secrets/<str:nom>/', getSecrets, name='get-secrets'),
     path('admin/', admin.site.urls),
     path('api/run-playbook/', RunPlaybook.as_view(), name='run-playbook'),
     path('api/get-playbooks/<str:domaine>/', get_playbooks, name='get-playbooks'),
     path('api/get_variables/<str:domaine>/<str:playbook_name>/', get_variables, name='get_variables'),
     path('api/get_domaine/', get_domaine, name='get_domaine'),
-    path('api/getAllSecrets/', getAllSecrets, name='getAllSecrets'),
-    path('add-password/', AddPasswordView.as_view(), name='add-password'),
     path('logs/', PlaybookLogListView.as_view(), name='playbook-log-list'),
     path('logs/<int:pk>/', PlaybookLogDetailView.as_view(), name='playbook-log-detail'),
 

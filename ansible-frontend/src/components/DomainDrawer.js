@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Typography, IconButton, Box, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
 import { ChevronLeft, ChevronRight, AddCircleOutline } from '@mui/icons-material';
-import { AddSecrets ,fetchDomains , fetchLogs } from './useApi';
+import {   fetchLogs } from './useApi';
 import axios from 'axios';
 import PlaybookLogList from './PlaybookLogList';
 
@@ -30,9 +30,9 @@ const DomainDrawer = () => {
       <IconButton onClick={toggleDrawer} sx={{ fontSize: '32px', mb: 2 }}>
         {open ? <ChevronLeft sx={{ fontSize: '32px' }} /> : <ChevronRight sx={{ fontSize: '32px' }} />}
       </IconButton>
-      <Drawer anchor="left" open={open} onClose={toggleDrawer} sx={{ width: 300, p: 2 }}>
+      <Drawer anchor="left" open={open} onClose={toggleDrawer} >
         <Typography variant="h6" gutterBottom>
-          Service demende
+          Service demender
         </Typography>
         <PlaybookLogList logs={logs} loadingLogs={loadingLogs} />
       </Drawer>

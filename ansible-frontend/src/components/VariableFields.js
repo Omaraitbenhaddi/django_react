@@ -1,24 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, TextField, FormControlLabel, Checkbox, MenuItem } from '@mui/material';
 import { FieldArray } from 'formik';
-import { fetchAllSecrets } from './useApi';
 
 const VariableFields = ({ formik }) => {
-    const [secrets, setSecrets] = useState([]);
     const [fetchError, setFetchError] = useState(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const { passwords } = await fetchAllSecrets();
-                setSecrets(passwords);
-            } catch (error) {
-                console.error('Error fetching secrets:', error);
-                setFetchError(error.message || 'Failed to fetch secrets.');
-            }
-        };
-        fetchData();
-    }, []);
 
     const handleChangeVault = () => {
         console.log("Vault checkbox changed");
@@ -72,34 +58,7 @@ const VariableFields = ({ formik }) => {
                             </Grid>
                         </Grid>
                     ))}
-                    <Grid item xs={12}>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    id='useVaultPassword'
-                                    name='useVaultPassword'
-                                    onChange={handleChangeVault}
-                                    color="primary"
-                                />
-                            }
-                            label="Use Vault Password"
-                        />
-                        <TextField
-                            select
-                            fullWidth
-                            id="vaultName"
-                            name="vaultName"
-                            label="Secret Name"
-                            value={formik.values.vaultName} // Ajout de cette ligne
-                            onChange={handleChangeSecretsName}
-                            margin="normal"
-                            variant="outlined"
-                        >
-                            {secrets.map((password, index) => (
-                                <MenuItem key={index} value={password}>{password}</MenuItem>
-                            ))}
-                        </TextField>
-                    </Grid>
+                 
                 </div>
             )}
         </FieldArray>

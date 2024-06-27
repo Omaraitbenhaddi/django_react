@@ -11,7 +11,7 @@ export const fetchDomains = async () => {
 export const fetchLogs = async (setLogs, setLoadingLogs) => {
     try {
       const response = await axios.get('http://localhost:8000/logs/');
-      setLogs(response.data);
+      setLogs(response.data.results);
     } catch (error) {
       console.error('Error fetching logs:', error);
     } finally {
@@ -30,10 +30,6 @@ export const fetchLogs = async (setLogs, setLoadingLogs) => {
     }
   };
   
-export const fetchAllSecrets = async () => {
-    const response = await axios.get('http://127.0.0.1:8000/api/getAllSecrets/');
-    return response.data;
-};
 
 
 export const fetchPlaybooks = async (selectedDomain) => {
@@ -61,14 +57,6 @@ export const runPlaybook = async (playbookPath, variables, selectedDomain, vault
 
     const response = await axios.post('http://localhost:8000/api/run-playbook/', payload);
     return response.data;
-};
-
-export const AddSecrets = async (nom,  password) => {
-    const response = await axios.post('http://localhost:8000/add-password/', {
-        nom: nom,
-        password: password,
-    })
-    return response.data
 };
 
 
