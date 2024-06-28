@@ -1,7 +1,7 @@
 ---
 - name: Test playbook
   hosts: localhost
-
+  gather_facts: yes
 
   tasks:
     - name: Display message
@@ -19,3 +19,7 @@
     - name: Display message
       debug:
         msg: "{{ password_var }}"
+
+    - name: Display IP address
+      debug:
+        msg: "IP address is {{ ansible_default_ipv4.address }}"

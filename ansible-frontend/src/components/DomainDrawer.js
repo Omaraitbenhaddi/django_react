@@ -1,43 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Typography, IconButton, Box, List, ListItem, ListItemText, CircularProgress } from '@mui/material';
-import { ChevronLeft, ChevronRight, AddCircleOutline } from '@mui/icons-material';
-import {   fetchLogs } from './useApi';
-import axios from 'axios';
+import { Drawer, Typography, IconButton } from '@mui/material';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { fetchLogs } from './useApi';
 import PlaybookLogList from './PlaybookLogList';
 
 const DomainDrawer = () => {
   const [open, setOpen] = useState(false);
-  const [selectedDomain, setSelectedDomain] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
 
- 
-
   useEffect(() => {
-    fetchLogs(setLogs , setLoadingLogs);
+    setLoadingLogs(true);
+    fetchLogs(1).then(data => {
+      setLogs(data.results);
+      setLoadingLogs(false);
+    }).catch(error => {
+      console.error('Error fetching logs:', error);
+      setLoadingLogs(false);
+    });
   }, []);
-
- 
 
   const toggleDrawer = () => {
     setOpen(!open);
   };
-
-
 
   return (
     <>
       <IconButton onClick={toggleDrawer} sx={{ fontSize: '32px', mb: 2 }}>
         {open ? <ChevronLeft sx={{ fontSize: '32px' }} /> : <ChevronRight sx={{ fontSize: '32px' }} />}
       </IconButton>
-      <Drawer anchor="left" open={open} onClose={toggleDrawer} >
+      <Drawer anchor="left" open={open} onClose={toggleDrawer}>
         <Typography variant="h6" gutterBottom>
-          Service demender
+          Service demandé
         </Typography>
         <PlaybookLogList logs={logs} loadingLogs={loadingLogs} />
       </Drawer>
-
-      
     </>
   );
 };

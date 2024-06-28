@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { List, ListItem, ListItemText, Typography, CircularProgress, Pagination, ButtonBase } from '@mui/material';
+import { List, ListItem, ListItemText, CircularProgress, Pagination } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { fetchLogs, fetchLog } from './useApi';
 
 const PlaybookLogList = ({ loadingLogs }) => {
   const navigate = useNavigate();
@@ -12,12 +12,12 @@ const PlaybookLogList = ({ loadingLogs }) => {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const fetchLogs = async (page) => {
+    const getLogs = async (page) => {
       setLoading(true);
       try {
-        const response = await axios.get(`http://localhost:8000/logs/?page=${page}`);
-        setLogs(response.data.results);
-        setCount(response.data.count);
+        const data = await fetchLogs(page);
+        setLogs(data.results);
+        setCount(data.count);
       } catch (error) {
         console.error('Error fetching logs:', error);
       } finally {
@@ -25,13 +25,13 @@ const PlaybookLogList = ({ loadingLogs }) => {
       }
     };
 
-    fetchLogs(page);
+    getLogs(page);
   }, [page]);
 
   const handleLogClick = async (id) => {
     try {
-      const response = await axios.get(`http://localhost:8000/logs/${id}`);
-      navigate('/logs', { state: { logs: response.data.output } });
+      const data = await fetchLog(id);
+      navigate('/logs', { state: { logs: data.output } });
     } catch (error) {
       console.error('Error fetching log details:', error);
     }
@@ -42,37 +42,33 @@ const PlaybookLogList = ({ loadingLogs }) => {
   };
 
   return (
-    <React.Fragment>
-      
+    <>
       {loading ? (
         <CircularProgress />
       ) : (
         <List disablePadding>
           {logs.map((log) => (
-
             <ListItem 
-            button
-            key={log.id} 
-            sx={{ py: 1, px: 5 }} 
-            onClick={() => handleLogClick(log.id)}
-          >
-            <ListItemText 
-              primary={` ${log.playbook_name.slice(0, -4)}`} 
-              secondary={`${log.created_at.slice(0, 10)} ${log.created_at.slice(11, 19)}`} 
-
-            /> 
-          </ListItem>
+              button
+              key={log.id} 
+              sx={{ py: 1, px: 5 }} 
+              onClick={() => handleLogClick(log.id)}
+            >
+              <ListItemText 
+                primary={log.playbook_name.slice(0, -4)} 
+                secondary={`${log.created_at.slice(0, 10)} ${log.created_at.slice(11, 19)}`} 
+              /> 
+            </ListItem>
           ))}
         </List>
       )}
-      
       <Pagination
         count={Math.ceil(count / 10)}
         page={page}
         onChange={handlePageChange}
         color="primary"
       />
-    </React.Fragment>
+    </>
   );
 };
 

@@ -10,8 +10,10 @@ from django.http import JsonResponse
 from django.conf import settings
 from rest_framework.decorators import api_view
 
+from rest_framework.permissions import IsAuthenticated
 
 
+import environ
 
 
 
@@ -21,6 +23,7 @@ from rest_framework.decorators import api_view
 
 
 def get_playbooks(request, domaine):
+    
     if not domaine:
         return Response({'error': 'domaine is required'}, status=status.HTTP_400_BAD_REQUEST)
    
@@ -79,45 +82,107 @@ import subprocess
 
 from .models import PlaybookLog
 
+
+import os
+import platform
+import subprocess
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import paramiko
+from .serializers import PlaybookSerializer
+from .models import PlaybookLog
+from django.conf import settings
+
+import os
+import platform
+import subprocess
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import paramiko
+from .serializers import PlaybookSerializer
+from .models import PlaybookLog
+from django.conf import settings
+from decouple import config
+
 class RunPlaybook(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request, *args, **kwargs):
         serializer = PlaybookSerializer(data=request.data)
         if serializer.is_valid():
             playbook_path = serializer.validated_data['playbook_path']
             selectedDomain = serializer.validated_data['selectedDomain']
             playbook_vars = request.data.get('variables', {})
-            playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', f'{selectedDomain}', 'playbooks', playbook_path))
 
+            ssh_hostname = config('SSH_HOSTNAME')
+            ssh_username = config('SSH_USERNAME')
+            ssh_key_filename = config('SSH_KEY_FILENAME')
+
+
+            playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', f'{selectedDomain}', 'playbooks', playbook_path))
+            playbook_dir_windows = playbook_dir
             if platform.system() == 'Windows':
                 playbook_dir = playbook_dir.replace('\\', '/')
                 playbook_dir = playbook_dir.replace('C:', '/mnt/c')
-            
-            vars_string = " ".join([f"{key}='{val}'" for key, val in playbook_vars.items()])
+
+            vars_string = " ".join([f'{key}="{val}"' for key, val in playbook_vars.items()])
 
             try:
+                                # Establish SSH connection
+                # Initialize environment variables
+                env = environ.Env()
+                environ.Env.read_env()  # Reads the .env file
+                ssh_client = paramiko.SSHClient()
+                print(ssh_username)
+                ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh_client.connect(
+                    ssh_hostname,
+                    username=ssh_username,
+                    key_filename=ssh_key_filename
+                )
+                print(playbook_path)
+                print(playbook_dir_windows)
+                print(playbook_dir)
+                # Transfer playbook to remote machine if necessary
+                sftp_client = ssh_client.open_sftp()
+                remote_playbook_path = f"/home/ec2-user/{os.path.basename(playbook_path)}"
+                sftp_client.put(playbook_dir_windows, remote_playbook_path)
+                sftp_client.close()
+                print(2)
+                # Determine command based on operating system
                 if platform.system() == 'Windows':
-                    command = ['wsl', 'ansible-playbook', playbook_dir]
+                    command = f"wsl ansible-playbook {remote_playbook_path}"
                 else:
-                    command = ['ansible-playbook', playbook_dir]
+                    command = f"ansible-playbook {remote_playbook_path}"
 
                 if vars_string:
-                    command.extend(['--extra-vars', vars_string])
-
-                result = subprocess.run(command, capture_output=True, text=True)
+                    command += f" --extra-vars \'{vars_string}\' "
+                print(command)
+                if playbook_dir_windows!=playbook_dir :
+                    stdin, stdout, stderr = ssh_client.exec_command(command[3:])
+                else : 
+                    stdin, stdout, stderr = ssh_client.exec_command(command)
+                result_stdout = stdout.read().decode()
+                result_stderr = stderr.read().decode()
+                return_code = stdout.channel.recv_exit_status()
 
                 PlaybookLog.objects.create(
                     playbook_name=playbook_path,
-                    output=result.stdout if result.returncode == 0 else result.stderr
+                    output=result_stdout if return_code == 0 else result_stderr
                 )
 
-                if result.returncode == 0:
-                    return Response({'output': result.stdout}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'error': result.stderr}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                return Response({'error': f"Failed to run playbook: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                ssh_client.close()
 
+                if return_code == 0:
+                    return Response({'output': result_stdout}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'error': result_stderr}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                print(e)
+                return Response({'error': f"Failed to run playbook: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -129,11 +194,13 @@ from rest_framework.pagination import PageNumberPagination
 from .models import PlaybookLog
 from .serializers import PlaybookLogNameSerializer
 
+from rest_framework.permissions import AllowAny
 
 class PlaybookLogPagination(PageNumberPagination):
     page_size = 10  
 
 class PlaybookLogListView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         logs = PlaybookLog.objects.all().order_by('-created_at')
         paginator = PlaybookLogPagination()
@@ -144,6 +211,7 @@ class PlaybookLogListView(APIView):
 
 
 class PlaybookLogDetailView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, pk):
         try:
             log = PlaybookLog.objects.get(pk=pk)
@@ -151,3 +219,42 @@ class PlaybookLogDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except PlaybookLog.DoesNotExist:
             return Response({'error': 'Log not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from rest_framework import status
+
+class RegisterView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        if not username or not password:
+            return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.create_user(username=username, password=password)
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key}, status=status.HTTP_201_CREATED)
+
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        print(request)
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({'token': token.key})
+        else:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({'message': 'This is a protected endpoint'})

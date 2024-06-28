@@ -2,6 +2,8 @@
 import React from 'react';
 import './App.css';
 import RunPlaybook from './components/RunPlaybook';
+import Login from './components/Login';
+import HelloWorld from './components/HelloWorld';
 import LogsPage from './components/LogsPage'; // Assurez-vous d'importer LogsPage
 import { CssBaseline, Container, ThemeProvider } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Mettre à jour l'importation
@@ -19,6 +21,8 @@ function App() {
                             <Routes>
                                 <Route path="/" element={<RunPlaybook />} />
                                 <Route path="/logs" element={<LogsPage />} />
+                                <Route  path="/login" element={<Login/> } />
+                                <Route path="/helloworld" element={<HelloWorld/>} />
                             </Routes>
                         </header>
                     </Container>
