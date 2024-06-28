@@ -1,7 +1,9 @@
+
 // src/components/Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from './authService';
+import { Container, Box, TextField, Button, Typography, Alert, Paper } from '@mui/material';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -14,7 +16,7 @@ const Login = () => {
 
         authService.login(username, password).then(
             () => {
-                navigate('/helloworld'); 
+                navigate('/helloworld');
             },
             (error) => {
                 const resMessage =
@@ -29,45 +31,59 @@ const Login = () => {
     };
 
     return (
-        <div className="col-md-12">
-            <div className="card card-container">
-                <form onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label htmlFor="username">Username</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            name="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                    </div>
+        <Container maxWidth="xs">
+            <Paper elevation={3} sx={{ padding: 3, marginTop: 8 }}>
+                <Box component="form" onSubmit={handleLogin}>
+                    <Typography variant="h5" align="center" gutterBottom>
+                        Login
+                    </Typography>
 
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
-                        <input
-                            type="password"
-                            className="form-control"
-                            name="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </div>
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        id="username"
+                        label="Username"
+                        name="username"
+                        autoComplete="username"
+                        autoFocus
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                    />
 
-                    <div className="form-group">
-                        <button className="btn btn-primary btn-block">Login</button>
-                    </div>
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="password"
+                        label="Password"
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+
+                    <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        color="primary"
+                        sx={{ marginTop: 2 }}
+                    >
+                        Login
+                    </Button>
 
                     {message && (
-                        <div className="form-group">
-                            <div className="alert alert-danger" role="alert">
-                                {message}
-                            </div>
-                        </div>
+                        <Alert severity="error" sx={{ marginTop: 2 }}>
+                            {message}
+                        </Alert>
                     )}
-                </form>
-            </div>
-        </div>
+                </Box>
+            </Paper>
+        </Container>
     );
 };
 

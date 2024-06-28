@@ -55,7 +55,7 @@ const PlaybookLogList = ({ loadingLogs }) => {
               onClick={() => handleLogClick(log.id)}
             >
               <ListItemText 
-                primary={log.playbook_name.slice(0, -4)} 
+                primary={`${log.playbook_name.slice(0, -4)} by ( ${log.user.username} )` } 
                 secondary={`${log.created_at.slice(0, 10)} ${log.created_at.slice(11, 19)}`} 
               /> 
             </ListItem>

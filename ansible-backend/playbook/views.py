@@ -106,8 +106,10 @@ from .models import PlaybookLog
 from django.conf import settings
 from decouple import config
 
+
 class RunPlaybook(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request, *args, **kwargs):
         serializer = PlaybookSerializer(data=request.data)
         if serializer.is_valid():
@@ -119,7 +121,6 @@ class RunPlaybook(APIView):
             ssh_username = config('SSH_USERNAME')
             ssh_key_filename = config('SSH_KEY_FILENAME')
 
-
             playbook_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', f'{selectedDomain}', 'playbooks', playbook_path))
             playbook_dir_windows = playbook_dir
             if platform.system() == 'Windows':
@@ -129,8 +130,6 @@ class RunPlaybook(APIView):
             vars_string = " ".join([f'{key}="{val}"' for key, val in playbook_vars.items()])
 
             try:
-                                # Establish SSH connection
-                # Initialize environment variables
                 env = environ.Env()
                 environ.Env.read_env()  # Reads the .env file
                 ssh_client = paramiko.SSHClient()
@@ -159,9 +158,9 @@ class RunPlaybook(APIView):
                 if vars_string:
                     command += f" --extra-vars \'{vars_string}\' "
                 print(command)
-                if playbook_dir_windows!=playbook_dir :
+                if playbook_dir_windows != playbook_dir:
                     stdin, stdout, stderr = ssh_client.exec_command(command[3:])
-                else : 
+                else:
                     stdin, stdout, stderr = ssh_client.exec_command(command)
                 result_stdout = stdout.read().decode()
                 result_stderr = stderr.read().decode()
@@ -169,7 +168,8 @@ class RunPlaybook(APIView):
 
                 PlaybookLog.objects.create(
                     playbook_name=playbook_path,
-                    output=result_stdout if return_code == 0 else result_stderr
+                    output=result_stdout if return_code == 0 else result_stderr,
+                    user=request.user  # Ajoutez l'utilisateur ici
                 )
 
                 ssh_client.close()
@@ -183,7 +183,6 @@ class RunPlaybook(APIView):
                 return Response({'error': f"Failed to run playbook: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 from .models import PlaybookLog
